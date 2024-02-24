@@ -54,7 +54,7 @@ public class CarrinhoController {
         return ResponseEntity.ok(carrinhos);
     }
     @PostMapping
-    public ResponseEntity<Carrinho> adicionandoProduto(@Valid @RequestBody CarrinhoRequestDTO carrinho){
+    public ResponseEntity<CarrinhoResponseDTO> adicionandoProduto(@Valid @RequestBody CarrinhoRequestDTO carrinho){
 
         try{
             ConsumidorResponseDTO consumidor = consumidorClient.buscarPorId(carrinho.getConsumidor());
@@ -71,9 +71,8 @@ public class CarrinhoController {
                 return ResponseEntity.status(503).build();
             }
         }
-
-        LocalDateTime dtH = LocalDateTime.now();
-        return ResponseEntity.ok(carrinhoService.adicionar(carrinho,dtH));
+        Carrinho carrinho1 = carrinhoService.adicionar(carrinho);
+        return ResponseEntity.ok(CarrinhoMapper.toCarrinhoDto(carrinho1));
     }
     @PatchMapping("/{id}")
     public ResponseEntity<CarrinhoResponseDTO> editarProduto(@PathVariable Long id, @RequestParam Integer quantidade){

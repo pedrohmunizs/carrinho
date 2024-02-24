@@ -22,7 +22,7 @@ public interface CarrinhoRepository extends JpaRepository<Carrinho, Long> {
     Integer alterandoStatusPorProduto(StatusCarrinho status, LocalDateTime dtH, Long idProduto, List<StatusCarrinho> listStatus);
     @Modifying
     @Transactional
-    @Query("UPDATE Carrinho c SET c.status= :status, c.dataHoraAlocacao = :dtH WHERE c.consumidor = :idConsumidor AND c.status = :statusConsulta")
-    Integer alterandoStatusPorConsumidorDeletado(StatusCarrinho status, LocalDateTime dtH, Long idConsumidor, StatusCarrinho statusConsulta);
+    @Query("UPDATE Carrinho c SET c.status= :status, c.dataHoraAlocacao = :dtH WHERE c.consumidor = :idConsumidor AND c.status IN :statusConsulta")
+    Integer alterandoStatusPorConsumidorDeletado(StatusCarrinho status, LocalDateTime dtH, Long idConsumidor, List<StatusCarrinho> statusConsulta);
 
 }

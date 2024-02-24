@@ -24,8 +24,8 @@ public class CarrinhoService {
 
     private final CarrinhoRepository carrinhoRepository;
 
-    public Carrinho adicionar(CarrinhoRequestDTO carrinho, LocalDateTime dtH){
-        return carrinhoRepository.save(CarrinhoMapper.toCarrinho(carrinho,carrinho.getProduto(),carrinho.getConsumidor(), StatusCarrinho.NO_CARRINHO));
+    public Carrinho adicionar(CarrinhoRequestDTO carrinho){
+        return carrinhoRepository.save(CarrinhoMapper.toCarrinho(carrinho, StatusCarrinho.NO_CARRINHO));
     }
     public List<Carrinho> carrinhoDoConsumidor(Long id){
         List<StatusCarrinho> statusList = Arrays.asList(StatusCarrinho.NO_CARRINHO, StatusCarrinho.PRODUTO_ALTERADO, StatusCarrinho.PRODUTO_INATIVO);
@@ -40,7 +40,7 @@ public class CarrinhoService {
         carrinho.setQuantidade(quantidade);
         carrinho.setDataHoraAlocacao(dtH);
 
-        return carrinho;
+        return carrinhoRepository.save(carrinho);
     }
     public void esvaziarCarrinho(Long idConsumidor){
         List<Carrinho> carrinhos = carrinhoRepository.findByConsumidorAndStatusIn(idConsumidor, Arrays.asList(StatusCarrinho.NO_CARRINHO, StatusCarrinho.PRODUTO_ALTERADO, StatusCarrinho.PRODUTO_INATIVO));
@@ -53,6 +53,7 @@ public class CarrinhoService {
         );
         carrinho.setStatus(StatusCarrinho.RETIRADO);
         carrinho.setDataHoraAlocacao(LocalDateTime.now());
+        carrinhoRepository.save(carrinho);
     }
     @KafkaListener(topics = {"compra-realizada"}, groupId = "carrinho")
     public void esvaziarCarrinhoComprado(PedidoResponseDTO eventReceived){
@@ -61,17 +62,20 @@ public class CarrinhoService {
         carrinhoRepository.esvaziarCarrinho(StatusCarrinho.COMPRADO, LocalDateTime.now(),idsCarrinhos);
     }
     @KafkaListener(topics = {"produto-alterado"}, groupId = "carrinho")
-    public void produtoAlterado(ProdutoResponseDTO dto,Long idProduto, String evento){
-        StatusCarrinho status = StatusCarrinho.PRODUTO_ALTERADO;
+    public void produtoAlterado(ProdutoResponseDTO eventReceived){
+        if(!eventReceived.getEvento().equals("CRIAÇÃO")) {
 
-        if (dto.getEvento().equals("Delete")){
-            status=StatusCarrinho.PRODUTO_INATIVO;
+            StatusCarrinho status = StatusCarrinho.PRODUTO_ALTERADO;
+
+            if (eventReceived.getEvento().equals("DELETE")) {
+                status = StatusCarrinho.PRODUTO_INATIVO;
+            }
+            carrinhoRepository.alterandoStatusPorProduto(status, LocalDateTime.now(), eventReceived.getIdProduto(), Arrays.asList(StatusCarrinho.NO_CARRINHO));
         }
-        carrinhoRepository.alterandoStatusPorProduto(status,LocalDateTime.now(),dto.getIdProduto(),Arrays.asList(StatusCarrinho.NO_CARRINHO));
     }
     @KafkaListener(topics = {"consumidor-deletado"}, groupId = "carrinho")
-    public void consumidorInativo(ConsumidorResponseDTO dto){
-        carrinhoRepository.alterandoStatusPorConsumidorDeletado(StatusCarrinho.RETIRADO, LocalDateTime.now(), dto.getIdConsumidor(),StatusCarrinho.NO_CARRINHO);
+    public void consumidorInativo(ConsumidorResponseDTO eventReceived){
+        carrinhoRepository.alterandoStatusPorConsumidorDeletado(StatusCarrinho.RETIRADO, LocalDateTime.now(), eventReceived.getIdConsumidor(),Arrays.asList(StatusCarrinho.NO_CARRINHO, StatusCarrinho.PRODUTO_ALTERADO,StatusCarrinho.RETIRADO));
     }
 }
 
